@@ -20,7 +20,11 @@ var MAX_SUGGESTIONS = 4;
     var input = $(".flexsearch-input").val();
     $('.matches').html("");
     $('.matches').show();
-
+    
+    //short circuit if nothing in search box
+    if(input.length == 0){
+      return;
+    }
     getJSON(input);
   });
 
