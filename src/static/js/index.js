@@ -1,4 +1,12 @@
 (function() {
+  $('input[type=text]').click(function() {
+    $('input[type=file]').trigger('click');
+  });
+
+  $('input[type=file]').change(function() {
+      $('input[type=text]').val($(this).val());
+  });
+  
   // Magic!
   console.log('Keepin\'n it clean with an external script!');
 
