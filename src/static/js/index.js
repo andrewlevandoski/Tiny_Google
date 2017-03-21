@@ -1,3 +1,6 @@
+//Change to edit number of suggestions
+var MAX_SUGGESTIONS = 4;
+
 (function() {
   $('input[type=text]').click(function() {
     $('input[type=file]').trigger('click');
@@ -24,25 +27,22 @@
   // Actual functionality
   function getJSON(input) {
     $.ajax({
-      url:"http://www.mattbowytz.com/simple_api.json?data=all",
+      //Hack to get around CORS complaint in chrome :(
+      //Makes suggestions slow as hell but only not server side fix for xml in ajax
+      url:"https://crossorigin.me/https://www.google.com/complete/search?output=toolbar&q="+input,
       type:"GET",
-      dataType:"json"
+      dataType:"XML"
     })
 
-    .done(function(json) {
-      json.data.programming.forEach(function(search) {
+    .done(function(xml) {
+      var count = 0; //limits number of suggestions
+      $(xml).find('suggestion').each(function() {
+        search = $(this).attr('data');
         search = search.toLowerCase();
-
-        if (input.length > 0 && search.startsWith(input.toLowerCase())) {
+        
+        if (input.length > 0 && count < MAX_SUGGESTIONS) {
           $('.matches').append("<a target=\"_blank\" href=\"http://www.google.com/search?q=" + search + "\">" + search + "</a>");
-        }
-      });
-
-      json.data.interests.forEach(function(search) {
-        search = search.toLowerCase();
-
-        if (input.length > 0 && search.startsWith(input.toLowerCase())) {
-          $('.matches').append("<a target=\"_blank\" href=\"http://www.google.com/search?q=" + search + "\">" + search + "</a>");
+          count++;
         }
       });
     })
