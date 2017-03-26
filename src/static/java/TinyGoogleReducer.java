@@ -1,5 +1,7 @@
-// cc MaxTemperatureReducer Reducer for maximum temperature example
-// vv MaxTemperatureReducer
+/**
+* Reducer for TinyGoogle project in cs 1699
+* @author Jake Halloran and Andrew Levandoski
+**/
 import java.io.IOException;
 
 import org.apache.hadoop.io.IntWritable;

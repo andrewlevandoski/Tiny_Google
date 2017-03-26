@@ -1,5 +1,7 @@
-// cc MaxTemperatureMapper Mapper for maximum temperature example
-// vv MaxTemperatureMapper
+/**
+* Mapper program for use with TinyGoogle for cs1699
+* @author Jake Halloran and Andrew Levandoski
+**/
 import java.io.IOException;
 
 import org.apache.hadoop.io.IntWritable;
@@ -16,6 +18,13 @@ public class TinyGoogleMapper
   public void map(LongWritable key, Text value, Context context)
       throws IOException, InterruptedException {
     
+    private Text Word = new Text();
+    StringTokenizer itr = new StringTokenizer(value.toString());
+    while(itr.hasMoreTokens()){
+      word.set
+    }
+    
+    /*
     String line = value.toString();
     String year = line.substring(15, 19);
     int airTemperature;
@@ -27,7 +36,6 @@ public class TinyGoogleMapper
     String quality = line.substring(92, 93);
     if (airTemperature != MISSING && quality.matches("[01459]")) {
       context.write(new Text(year), new IntWritable(airTemperature));
-    }
+    }*/
   }
 }
-// ^^ MaxTemperatureMapper
