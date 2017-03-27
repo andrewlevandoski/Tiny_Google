@@ -17,9 +17,12 @@ public class TinyGoogleReducer
       throws IOException, InterruptedException {
     
     int maxValue = Integer.MIN_VALUE;
+    int count = 0;
     for (IntWritable value : values) {
-      maxValue = Math.max(maxValue, value.get());
+      minValue = Math.min(minValue, value.get());
+      count++;
     }
-    context.write(key, new IntWritable(maxValue));
+    key = new Text(new String(key.toString() + " " +minValue.toString()));
+    context.write(key, new IntWritable(count));
   }
 }
