@@ -81,6 +81,80 @@ public class TinyGoogleMapReduce {
       
     }
     
+    else if(args[2].equals("2")){
+      Scanner searchScanner = new Scanner(System.in); //read input from system.in
+      System.out.println("Please enter search terms.");
+      String query = searchScanner.nextLine();
+      String[] splitted = query.split(" ");
+      
+      //Move the search terms to the hdfs
+      Path searchPath = new Path("query.txt");
+      FileSystem fs = FileSystem.get(new Configuration());
+      BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fs.create(searchPath, true)));
+      for(int i=0; i<splitted.length; i++){
+        bw.write(splitted[i]+"\n");
+      }
+      bw.close();
+      
+      Configuration conf = new Configuration();
+      Job job = Job.getInstance(conf, "TinyGoogleQuery");
+      job.setJarByClass(TinyGoogleMapReduce.class);
+      FileInputFormat.addInputPath(job, new Path("query.txt"));
+      FileOutputFormat.setOutputPath(job, new Path(args[1]+"search"));    
+      job.setMapperClass(SearchMapper.class);
+      job.setReducerClass(SearchReducer.class);
+      job.setOutputKeyClass(Text.class);
+      job.setOutputValueClass(IntWritable.class);
+      
+      if(job.waitForCompletion(true)){
+        //read results
+        Path resultsPath = new Path(args[1]+"search/part-r-00000");
+        FileSystem fs2 = FileSystem.get(new Configuration());
+        BufferedReader br = new BufferedReader(new InputStreamReader(fs2.open(resultsPath)));
+        String line= br.readLine();
+        
+        //get size of results for reading
+        int count = 0;
+        int largest = 0;
+        while(line!=null){
+          count++;
+          String[] resultsSplit = line.split("\\s+");
+          if(resultsSplit[1].length() > largest){
+            largest = resultsSplit[1].length();
+          }
+          line = br.readLine();
+        }
+        br.close();
+        
+        //Read in results
+        String[][] books = new String[count][2];
+        br = new BufferedReader(new InputStreamReader(fs2.open(resultsPath)));
+        line = br.readLine();
+        int booksCount = 0;
+        while(line!=null && booksCount < count){
+          String[] resultsSplit = line.split("\\s+");
+          String format = "%0"+largest+"d";
+          books[booksCount][0] = String.format(format,Integer.parseInt(resultsSplit[1]));
+          books[booksCount++][1] = resultsSplit[0];
+          line = br.readLine();
+        }
+        br.close();
+        
+        //Sort Results
+        Arrays.sort(books, new Comparator<String[]>() {
+            @Override
+            public int compare(final String[] entry1, final String[] entry2) {
+                final String time1 = entry1[0];
+                final String time2 = entry2[0];
+                return time1.compareTo(time2);
+            }
+        });
+        
+        for(int i=count-1;i>=0;i--){
+          System.out.println(books[i][0]+ " "+books[i][1]);
+        }
+      }
+    }
   }
   
   public static class TinyGoogleReducer
@@ -140,7 +214,9 @@ public class TinyGoogleMapReduce {
     bw.close();
   }
 
-  public static void SearchMapper extends Mapper<Object, Text, Text, IntWritable> {
+  //Search Mapper
+  public static class SearchMapper
+  extends Mapper<Object, Text, Text, IntWritable> {
     @Override
     public void map(Object key, Text value, Context context) throws IOException, InterruptedException{
       //load the inverted index from disk
@@ -150,20 +226,34 @@ public class TinyGoogleMapReduce {
       //loop over each keyword
       StringTokenizer itr = new StringTokenizer(value.toString());
       while(itr.hasMoreTokens()){
-        BufferedReader br = new BufferedReader(new InputStreamReader(fs.open(pt)));
+        BufferedReader br = new BufferedReader(new InputStreamReader(fs.open(path)));
         String searchTerm = itr.nextToken();
         String line = br.readLine();
         while(line != null){
-          String splitted = line.split("\\s+");
-          if(splitted[0].equals(searchTerm){
+          String[] splitted = line.split("\\s+");
+          if(splitted[0].equals(searchTerm)){
             //write key = doc name, val = numOccurances
-            context.write(new Text(splitted[1]),new IntWritable(Integer.parseInt(splitted[2])));
+            for(int i=1;i<splitted.length;i+=2)
+              context.write(new Text(splitted[i]),new IntWritable(Integer.parseInt(splitted[i+1])));
           }
           line = br.readLine();
         }
         //buffered reader doesnt have a rewind so close and open is what has to happen
         br.close();
       }
+    }
+  }
+  
+  //Search Reducer
+  public static class SearchReducer extends Reducer<Text, IntWritable, Text, IntWritable>{
+    public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException{
+      //count the total number of matched keywords for this book
+      int sum = 0;
+      for(IntWritable val : values){
+        sum+=val.get();
+      }
+      //write key = doc, val = total keywords hit
+      context.write(key,new IntWritable(sum));
     }
   }
 }
