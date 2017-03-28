@@ -24,13 +24,16 @@ public class TinyGoogleMapReduce {
   static HashMap <String, ArrayList> invertedIndex = new HashMap <String, ArrayList>();
   
   public static void main(String[] args) throws Exception {
-    if (args.length != 2 && args.length != 3) {
+    if (args.length != 2 && args.length != 3 && (args.length!=4 && args[2].equals("3"))) {
       System.err.println("Usage: TinyGoogleMapReduce <input path> <output path> <option_num>");
       System.exit(-1);
     }
     
     //use mapreduce to build inverted index
     if(args.length == 2 || args[2].equals("1")){
+      //delete anything currently occupying the output location
+      fs.delete(new Path(args[1]), true);
+      
       Configuration conf = new Configuration();
       Job job = Job.getInstance(conf,"TinyGoogleMR");
       job.setJarByClass(TinyGoogleMapReduce.class);
@@ -83,7 +86,11 @@ public class TinyGoogleMapReduce {
       
     }
     
+    //uses mapreduce to run a search of the inverted index
     else if(args[2].equals("2")){
+      //delete anything currently occupying the output location
+      fs.delete(new Path(args[1]), true);
+      
       Scanner searchScanner = new Scanner(System.in); //read input from system.in
       System.out.println("Please enter search terms.");
       String query = searchScanner.nextLine();
@@ -163,8 +170,104 @@ public class TinyGoogleMapReduce {
         writeToJSON(books,splitted);
       }
     }
-  }
   
+    //adds a new book to the index
+    else if(args[2].equals("3")){
+      //Read the hdfs to ensure current file has not been previously added
+      
+      //remove / from path
+      String[] newBookPath = args[3].split("/");      
+      Path bookPath = new Path("/TinyGoogle/books/"+newBookPath[newBookPath.length-1]);
+      Path iiPath = new Path("invertedindex.txt");
+      FileSystem fs = FileSystem.get(new Configuration());
+      if(!fs.exists(iiPath)){
+        System.err.println("Error inverted index not yet started cannot add to it");
+        System.exit(-1);
+      }
+      if(fs.exists(bookPath)){
+        System.err.println("Error book already added to index");
+        System.exit(-1);
+      }
+      
+      //if we reach here the file is not a repeat and the index exists
+      //add the new book to hdfs
+      fs.copyFromLocalFile(false,new Path(args[3]),bookPath);
+      
+      //delete anything currently occupying the output location
+      fs.delete(new Path(args[1]), true);
+      
+      //Starts a mr job
+      Configuration conf = new Configuration();
+      Job job = Job.getInstance(conf,"TinyGoogleMR");
+      job.setJarByClass(TinyGoogleMapReduce.class);
+      FileInputFormat.addInputPath(job, bookPath);
+      FileOutputFormat.setOutputPath(job, new Path(args[1]));    
+      job.setMapperClass(TinyGoogleMapper.class);
+      job.setReducerClass(TinyGoogleReducer.class);
+      job.setOutputKeyClass(Text.class);
+      job.setOutputValueClass(IntWritable.class); 
+      
+      //take job output and build index
+      if(job.waitForCompletion(true)){
+        Path mr_output = new Path(args[1]+"/part-r-00000");
+        Path existingNode = new Path("invertedindex.txt");
+        FileSystem fsmap = FileSystem.get(new Configuration());
+        BufferedReader br = new BufferedReader(new InputStreamReader(fsmap.open(existingNode)));
+        String line;
+        line = br.readLine();
+        
+        //fill hashmap with existing index
+        while(line!=null){
+          String[] splitted = line.split("\\s+");
+          ArrayList<String[]> al = new ArrayList<String[]>();
+          String[] arr = new String[splitted.length-1];
+          for(int i=1; i<splitted.length;i+=2){
+            arr[i-1] = splitted[i];
+            arr[i] = splitted[i+1];
+          }
+          al.add(arr);
+          invertedIndex.put(splitted[0],al);
+          line = br.readLine();
+        }
+        br.close();
+        
+        //Add the new book's lines
+        br = new BufferedReader(new InputStreamReader(fsmap.open(mr_output)));
+        line = br.readLine();
+        while(line != null){
+          line = br.readLine();
+          if(line != null){
+            String[] splitted = line.split("\\s+");
+            if(splitted.length > 2){
+              
+              //if the word is already in the inverted index add this books words
+              if(invertedIndex.containsKey(splitted[1])){
+                ArrayList al = invertedIndex.get(splitted[1]);
+                String[] arr = new String[2];
+                //book name
+                arr[0] = splitted[0];
+                //number
+                arr[1] = splitted[2].trim();
+                al.add(arr);//splitted[0], Integer.parseInt(splitted[2].trim()));
+              }
+              //if the word is not in the inverted index add a place for it and store this books words
+              else{
+                ArrayList<String[]> al = new ArrayList<String[]>();
+                String[] arr = new String[2];
+                arr[0] = splitted[0];
+                arr[1] = splitted[2].trim();
+                al.add(arr);       //splitted[0], Integer.parseInt(splitted[2].trim()));
+                invertedIndex.put(splitted[1], al);
+              }
+            }
+          }
+        }
+        //close the reader and write the inverted index
+        br.close();
+        writeIndexToFile();
+      }
+    }
+  } 
   public static class TinyGoogleReducer
   extends Reducer<Text, IntWritable, Text, IntWritable> {
   
@@ -220,6 +323,7 @@ public class TinyGoogleMapReduce {
       bw.write("\n");
     }
     bw.close();
+    
   }
 
   //Search Mapper
