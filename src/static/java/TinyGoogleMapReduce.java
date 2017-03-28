@@ -15,6 +15,8 @@ import org.apache.hadoop.mapreduce.*;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import java.util.*;
 import java.io.*;
+//import org.json.simple.JSONObject;
+//import org.json.simple.JSONArray;
 
 public class TinyGoogleMapReduce {
 
@@ -105,6 +107,7 @@ public class TinyGoogleMapReduce {
       job.setReducerClass(SearchReducer.class);
       job.setOutputKeyClass(Text.class);
       job.setOutputValueClass(IntWritable.class);
+    //  job.addArchiveToClasspath(new Path(Path.CUR_DIR));
       
       if(job.waitForCompletion(true)){
         //read results
@@ -150,9 +153,14 @@ public class TinyGoogleMapReduce {
             }
         });
         
+        //output results to console
+      /*  int count = 0;
         for(int i=count-1;i>=0;i--){
           System.out.println(books[i][0]+ " "+books[i][1]);
         }
+      }*/
+        //output results to json
+        writeToJSON(books,splitted);
       }
     }
   }
@@ -255,5 +263,68 @@ public class TinyGoogleMapReduce {
       //write key = doc, val = total keywords hit
       context.write(key,new IntWritable(sum));
     }
+  }
+
+  public static void writeToJSON(String[][] books, String[] keywords) throws IOException{
+    int count =0;
+  //  JSONObject obj = new JSONObject();
+  //  JSONArray list = new JSONArray();
+    
+    //manual json because classpath issue
+    String output = "{\"results\":[";
+    
+    //for getting keyword context
+     Path bookPath;
+     FileSystem fs = FileSystem.get(new Configuration());
+     BufferedReader br;
+    
+    String context = "";
+    for(int i=books.length-1; i>=0; i--){
+      //get context for 1st three results
+      context = "";
+      if(count++<3){
+        bookPath = new Path("/TinyGoogle/books/"+books[i][1]);
+        br = new BufferedReader(new InputStreamReader(fs.open(bookPath)));
+        String line = br.readLine();
+        boolean flag = false;
+        while(line!=null){
+          String[] splitted = line.split("\\s+");
+          for(int j=0;j<splitted.length;j++){
+             String strippedWord = splitted[j].toLowerCase().replaceAll("\\W", "");
+             for(int k=0;k<keywords.length;k++){
+               if(keywords[k].equals(strippedWord)){
+                 context = line;
+                 flag = true;
+                 break;
+               }
+             }
+             if(flag){
+               break;
+             }
+          }
+          if(flag){
+            break;
+          }
+          else{
+            line = br.readLine();
+          }
+        }
+      }
+      else{
+        context = "";
+      }
+      
+      //store in manual json
+      if(count == 1){
+        output = output + "{ \"title\":\""+books[i][1]+"\", \"occurances\":\""+books[i][0]+"\", \"context\":\""+context+"\" }";
+      }
+      else{
+        output = output + ", { \"title\":\""+books[i][1]+"\", \"occurances\":\""+books[i][0]+"\", \"context\":\""+context+"\" }";
+      }     
+    }
+    output = output+" ] }";
+    FileWriter fw = new FileWriter("results.json");
+    fw.write(output);
+    fw.flush();
   }
 }
