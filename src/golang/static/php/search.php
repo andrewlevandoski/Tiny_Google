@@ -3,18 +3,16 @@
   $indexes = '';
   $host = $_SERVER['HTTP_HOST'];
   $searchTerms = $_POST['search'];
-
-
-  $commandString = 'sudo ssh namenode "/usr/local/hadoop/bin/hadoop jar ~/TinyGoogle/TinyGoogleMR.jar TinyGoogleMapReduce /TinyGoogle/books /web1 2 \\"'.$searchTerms.'\\""';
-  $results ='';
-  exec($commandString,$results);
-  $temp = '';
-  foreach($results as $k=>$v){
-    $temp = $temp.$v;
-  }
-  die(exec('whoami');
-  $commandString2 = 'sudo rm ../results/results.json';
-  exec($commandString2);
-  $commandString3 = 'sudo scp namenode:~/results.json ../results/results.json';
-  exec($commandString3);
+  //echo(exec('whoami'));
+ // $deleteString("hdfs dfs -rmr /web1search");
+  //echo(exec($deleteString));
+  $bash1 = 'bash ../scripts/hdfs_clear.sh';
+  $bash2 = 'bash ../scripts/generate_results.sh '.$searchTerms;
+  $bash3= 'bash ../scripts/json_clear.sh';
+  $bash4 = 'bash ../scripts/json_move.sh';
+  echo($bash2);
+  exec($bash1);
+  exec($bash2);
+  exec($bash3);
+  exec($bash4);
 ?>
