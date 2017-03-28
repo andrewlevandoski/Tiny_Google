@@ -55,17 +55,20 @@ var MAX_SUGGESTIONS = 4;
     var occurrences = []
 
     // !!!!!!!!!!!!!!!
-    // THIS IS WHERE I GET THE JSON, CURRENTLY JUST GRABBING THE FILE FROM LOCAL
-    $.getJSON('../../../results.json', function(data) {
-      for(i = 0; i < 100; i++) {
-        if(data["results"][i] == null) break;
-        obj = data["results"][i]
-        files.push(obj["title"]);
-        contexts.push(obj["context"]);
-        occurrences.push(obj["occurances"]);
-      }
+    // THIS IS WHERE I GET THE JSON, CURRENTLY JUST GRABBING THE FILE FROM LOCAL after updating it with php
+    $.post("../php/search.php",{search:input}).done(function(data2){
+      console.log(data2);
+      $.getJSON('../results/results.json', function(data) {
+        for(i = 0; i < 100; i++) {
+          if(data["results"][i] == null) break;
+          obj = data["results"][i]
+          files.push(obj["title"]);
+          contexts.push(obj["context"]);
+          occurrences.push(obj["occurances"]);
+        }
 
-      showResults(input, files, contexts, occurrences);
+        showResults(input, files, contexts, occurrences);
+      });
     });
   });
 
