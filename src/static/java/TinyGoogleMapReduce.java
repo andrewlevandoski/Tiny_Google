@@ -24,7 +24,7 @@ public class TinyGoogleMapReduce {
   static HashMap <String, ArrayList> invertedIndex = new HashMap <String, ArrayList>();
   
   public static void main(String[] args) throws Exception {
-    if (args.length != 2 && args.length != 3 && (args.length!=4 && args[2].equals("3"))) {
+    if (args.length != 2 && args.length != 3 && args.length!=4) {
       System.err.println("Usage: TinyGoogleMapReduce <input path> <output path> <option_num>");
       System.exit(-1);
     }
@@ -32,6 +32,7 @@ public class TinyGoogleMapReduce {
     //use mapreduce to build inverted index
     if(args.length == 2 || args[2].equals("1")){
       //delete anything currently occupying the output location
+      FileSystem fs = FileSystem.get(new Configuration());
       fs.delete(new Path(args[1]), true);
       
       Configuration conf = new Configuration();
@@ -46,8 +47,7 @@ public class TinyGoogleMapReduce {
       
       //take job output and build index
       if(job.waitForCompletion(true)){
-        Path mr_output = new Path(args[1]+"/part-r-00000");
-        FileSystem fs = FileSystem.get(new Configuration());
+        Path mr_output = new Path(args[1]+"/part-r-00000");       
         BufferedReader br = new BufferedReader(new InputStreamReader(fs.open(mr_output)));
         String line;
         line = br.readLine();
@@ -88,17 +88,21 @@ public class TinyGoogleMapReduce {
     
     //uses mapreduce to run a search of the inverted index
     else if(args[2].equals("2")){
-      //delete anything currently occupying the output location
-      fs.delete(new Path(args[1]), true);
+     
       
-      Scanner searchScanner = new Scanner(System.in); //read input from system.in
+     /* Scanner searchScanner = new Scanner(System.in); //read input from system.in
       System.out.println("Please enter search terms.");
-      String query = searchScanner.nextLine();
-      String[] splitted = query.split(" ");
+      String query = searchScanner.nextLine();*/
+      String search = args[3];
+      String[] splitted = search.split(" ");
       
       //Move the search terms to the hdfs
       Path searchPath = new Path("query.txt");
       FileSystem fs = FileSystem.get(new Configuration());
+      
+      //delete anything currently occupying the output location
+      fs.delete(new Path(args[1]), true);
+      
       BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fs.create(searchPath, true)));
       for(int i=0; i<splitted.length; i++){
         bw.write(splitted[i]+"\n");
