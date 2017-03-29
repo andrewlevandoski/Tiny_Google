@@ -8,7 +8,8 @@ var MAX_SUGGESTIONS = 4;
   // ON SEARCH
   function showResults(searchTerm, files, contexts, occurrences) {
     $('.results').append("<div class='results-header'>Results for \"" + searchTerm + "\":");
-
+    
+    console.log("hi");
     for(i = 0; i < files.length; i++) {
       var link = "../../../../books/" + files[i];
 
@@ -38,7 +39,7 @@ var MAX_SUGGESTIONS = 4;
     var input = $(".flexsearch-input").val();
     $('.matches').html("");
     $('.matches').show();
-    $('.upload').show();
+    $('#uploadform').show();
     $('.results').hide();
 
     //short circuit if nothing in search box
@@ -102,7 +103,7 @@ var MAX_SUGGESTIONS = 4;
   }
   
   //file upload functionality
-  $("form").submit(function(evt){	 
+  $("#uploadform").submit(function(evt){	 
       evt.preventDefault();
       var formData = new FormData($(this)[0]);
    $.ajax({
