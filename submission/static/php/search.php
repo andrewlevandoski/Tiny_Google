@@ -7,7 +7,7 @@
  // $deleteString("hdfs dfs -rmr /web1search");
   //echo(exec($deleteString));
   $bash1 = 'bash ../scripts/hdfs_clear.sh';
-  $bash2 = 'bash ../scripts/generate_results.sh '.$searchTerms;
+  $bash2 = 'bash ../scripts/generate_results.sh "'.$searchTerms.'"';
   $bash3= 'bash ../scripts/json_clear.sh';
   $bash4 = 'bash ../scripts/json_move.sh';
   echo($bash2);
