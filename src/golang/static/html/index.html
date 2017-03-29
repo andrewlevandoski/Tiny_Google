@@ -20,14 +20,20 @@
         </form>
       </div>
     </div>
-
-    <div class="upload">
-      <h4>Upload File</h4>
-      <input type="text" />
-      <input type="file" />
-      <input type="submit" name="file_upload">
-    </div>
-
+    
+    <form id="uploadform">
+      <div class="upload">
+        <h4>Upload File</h4>
+        <input type="file" name="file" id="file" style="border: solid 1px black"/>
+        <input type="button" value="Browse..." onclick="document.getElementById('file').click();" />
+        <input type="submit" name="file_upload">
+      </div>
+    </form>
+    
+    <div class="upload" id="uploadMsg">
+      <h4>Your File Has Been Uploaded</h4>
+    <div>
+    
     <div class="results">
       
     </div>

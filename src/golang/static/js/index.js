@@ -3,6 +3,7 @@ var MAX_SUGGESTIONS = 4;
 
 (function() {
   $('.results').hide()
+  $('#uploadMsg').hide()
 
   // ON SEARCH
   function showResults(searchTerm, files, contexts, occurrences) {
@@ -99,4 +100,25 @@ var MAX_SUGGESTIONS = 4;
       console.log("Error");
     });
   }
+  
+  //file upload functionality
+  $("form").submit(function(evt){	 
+      evt.preventDefault();
+      var formData = new FormData($(this)[0]);
+   $.ajax({
+       url: '../php/fileUpload.php',
+       type: 'POST',
+       data: formData,
+       cache: false,
+       contentType: false,
+       enctype: 'multipart/form-data',
+       processData: false,
+       success: function (response) {
+         console.log(response);
+       }
+   });
+   $("#uploadform").hide();
+   $('#uploadMsg').show()
+   return false;
+ });
 })();
